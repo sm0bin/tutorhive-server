@@ -45,6 +45,13 @@ async function run() {
             res.send(result);
         })
 
+        app.post("/services", async (req, res) => {
+            const newService = req.body;
+            const result = await services.insertOne(newService);
+            console.log(result);
+            res.json(result);
+        })
+
 
         app.get("/bookings", async (req, res) => {
             const cursor = bookings.find();

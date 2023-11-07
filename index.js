@@ -28,13 +28,28 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
 
-        const database = client.db("tuitionMaster");
+        const database = client.db("tuitionMasterDB");
         const services = database.collection("services");
+        const bookings = database.collection("bookings");
 
         app.get("/services", async (req, res) => {
             const cursor = services.find();
             const result = await cursor.toArray();
             res.send(result);
+        })
+
+        app.get("/services/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await services.findOne(query);
+            res.send(result);
+        })
+
+        app.post("/bookings", async (req, res) => {
+            const newBooking = req.body;
+            const result = await productCollection.insertOne(newBooking);
+            console.log(result);
+            res.json(result);
         })
 
 

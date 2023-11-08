@@ -33,16 +33,29 @@ async function run() {
         const bookings = database.collection("bookings");
 
         app.get("/services", async (req, res) => {
-            console.log(req.query);
             if (req.query?.email) {
+                console.log(req.query);
                 const query = { "serviceProvider.email": req.query.email };
                 const result = await services.find(query).toArray();
+                res.send(result);
+            } else if (req.query?.search) {
+                const searchText = req.query.search;
+                const query = {
+                    serviceName: { $regex: searchText, $options: "i" }
+                }
+                const options = {
+                    sort: {
+                        servicePrice: req.query.sort === "asc" ? 1 : -1
+                    }
+                }
+                const result = await services.find(query, options).toArray();
                 res.send(result);
             } else {
                 const result = await services.find().toArray();
                 res.send(result);
             }
-        })
+        });
+
 
         app.get("/services/:id", async (req, res) => {
             const id = req.params.id;
@@ -57,6 +70,7 @@ async function run() {
             const result = await services.deleteOne(query);
             res.send(result);
         })
+
         app.post("/services", async (req, res) => {
             const newService = req.body;
             const result = await services.insertOne(newService);
@@ -64,12 +78,38 @@ async function run() {
             res.json(result);
         })
 
-
-        app.get("/bookings", async (req, res) => {
-            const cursor = bookings.find();
-            const result = await cursor.toArray();
+        app.put("/services/:id", async (req, res) => {
+            const filter = { _id: new ObjectId(req.params.id) };
+            const options = { upsert: true };
+            const updateService = req.body;
+            const service = {
+                $set: {
+                    serviceImage: updateService.serviceImage,
+                    serviceName: updateService.serviceName,
+                    servicePrice: updateService.servicePrice,
+                    serviceArea: updateService.serviceArea,
+                    serviceDescription: updateService.serviceDescription,
+                },
+            };
+            const result = await services.updateOne(filter, service, options);
             res.send(result);
         })
+
+
+        app.get("/bookings", async (req, res) => {
+            console.log(req.query);
+            if (req.query?.email) {
+                const query1 = { "serviceProvider.email": req.query.email };
+                const userPending = await bookings.find(query1).toArray();
+                const query2 = { "serviceUser.email": req.query.email };
+                const userBooking = await bookings.find(query2).toArray();
+                res.send({ userPending, userBooking });
+            } else {
+                const result = await bookings.find().toArray();
+                res.send(result);
+            }
+        })
+
 
         app.post("/bookings", async (req, res) => {
             const newBooking = req.body;
@@ -77,6 +117,21 @@ async function run() {
             console.log(result);
             res.json(result);
         })
+
+        app.put("/bookings/:id", async (req, res) => {
+            const filter = { _id: new ObjectId(req.params.id) };
+            // const options = { upsert: true };
+            const updateState = req.body.serviceState;
+            console.log(updateState);
+            const booking = {
+                $set: {
+                    "serviceDetails.state": updateState,
+                },
+            };
+            const result = await bookings.updateOne(filter, booking);
+            res.send(result);
+        })
+
 
 
         // Send a ping to confirm a successful connection
@@ -91,7 +146,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Hello World!')
+    res.send('Tuition Master Server is Running...')
 })
 
 app.listen(port, () => {

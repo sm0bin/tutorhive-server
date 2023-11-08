@@ -33,9 +33,15 @@ async function run() {
         const bookings = database.collection("bookings");
 
         app.get("/services", async (req, res) => {
-            const cursor = services.find();
-            const result = await cursor.toArray();
-            res.send(result);
+            console.log(req.query);
+            if (req.query?.email) {
+                const query = { "serviceProvider.email": req.query.email };
+                const result = await services.find(query).toArray();
+                res.send(result);
+            } else {
+                const result = await services.find().toArray();
+                res.send(result);
+            }
         })
 
         app.get("/services/:id", async (req, res) => {
@@ -45,6 +51,12 @@ async function run() {
             res.send(result);
         })
 
+        app.delete("/services/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await services.deleteOne(query);
+            res.send(result);
+        })
         app.post("/services", async (req, res) => {
             const newService = req.body;
             const result = await services.insertOne(newService);

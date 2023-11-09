@@ -11,7 +11,7 @@ const cookieParser = require('cookie-parser');
 // Middleware
 app.use(cors({
     origin: [
-        // 'http://localhost:5173',
+        'http://localhost:5173',
         'https://tuition-master-sm.web.app',
         'https://tuition-master-sm.firebaseapp.com/'
     ],

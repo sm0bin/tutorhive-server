@@ -5,9 +5,13 @@ const port = process.env.PORT || 5500;
 const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
 const ObjectId = require('mongodb').ObjectId;
+const jwt = require('jsonwebtoken');
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:5173', 'https://tuition-master-sm.web.app'],
+    credentials: true
+}));
 app.use(express.json());
 
 
@@ -29,6 +33,25 @@ async function run() {
         const database = client.db("tuitionMasterDB");
         const services = database.collection("services");
         const bookings = database.collection("bookings");
+
+        app.post("/jwt", async (req, res) => {
+            const user = req.body;
+            console.log(user);
+            const token = jwt.sign(user, process.env.SECRET_TOKEN, { expiresIn: '1h' });
+            res
+                .cookie('token', token,
+                    {
+                        httpOnly: true,
+                        secure: true,
+                        sameSite: 'none'
+                    })
+                .send({ success: true })
+        })
+
+        app.post("/logout", async (req, res) => {
+            const user = req.body;
+            res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+        })
 
         app.get("/services", async (req, res) => {
             if (req.query?.email) {

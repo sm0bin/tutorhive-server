@@ -6,6 +6,7 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
 const ObjectId = require('mongodb').ObjectId;
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
 // Middleware
 app.use(cors({
@@ -13,7 +14,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
-
+app.use(cookieParser());
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.olrpvxs.mongodb.net/?retryWrites=true&w=majority`;
@@ -25,6 +26,27 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
+
+
+const verifyToken = (req, res, next) => {
+    const token = req?.cookies?.token;
+    // console.log("token", token);
+    if (!token) {
+        return res.status(401).send({ message: "Access Denied" });
+    }
+
+    jwt.verify(token, process.env.SECRET_TOKEN, (err, decoded) => {
+        if (err) {
+            console.log(err);
+            return res.status(401).send({ message: "Access Denied" });
+        }
+        req.user = decoded;
+        next();
+        // console.log("user", user);
+    })
+}
+
+
 
 async function run() {
     try {
@@ -38,18 +60,18 @@ async function run() {
             const user = req.body;
             console.log(user);
             const token = jwt.sign(user, process.env.SECRET_TOKEN, { expiresIn: '1h' });
-            res
-                .cookie('token', token,
-                    {
-                        httpOnly: true,
-                        secure: true,
-                        sameSite: 'none'
-                    })
+            res.cookie('token', token,
+                {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: 'none'
+                })
                 .send({ success: true })
         })
 
         app.post("/logout", async (req, res) => {
             const user = req.body;
+            console.log("logout", user);
             res.clearCookie('token', { maxAge: 0 }).send({ success: true })
         })
 
@@ -117,8 +139,11 @@ async function run() {
         })
 
 
-        app.get("/bookings", async (req, res) => {
-            console.log(req.query);
+        app.get("/bookings", verifyToken, async (req, res) => {
+            console.log("cookies", req.cookies);
+            if (req.query.email !== req.user.email) {
+                return res.status(401).send({ message: "Access Denied" });
+            }
             if (req.query?.email) {
                 const query1 = { "serviceProvider.email": req.query.email };
                 const userPending = await bookings.find(query1).toArray();

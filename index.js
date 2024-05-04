@@ -12,8 +12,8 @@ const cookieParser = require('cookie-parser');
 app.use(cors({
     origin: [
         'http://localhost:5173',
-        'https://tuition-master-sm.web.app',
-        'https://tuition-master-sm.firebaseapp.com'
+        'https://tutorhive-sm.web.app',
+        'https://tutorhive-sm.firebaseapp.com'
     ],
     credentials: true
 }));

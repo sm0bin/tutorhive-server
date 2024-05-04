@@ -1,12 +1,11 @@
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
 const app = express();
-const port = process.env.PORT || 5500;
-require("dotenv").config();
-const ObjectId = require('mongodb').ObjectId;
-const jwt = require('jsonwebtoken');
+const cors = require('cors');
+const db = require('./src/config/db');
 const cookieParser = require('cookie-parser');
+const bookingRoutes = require('./src/routes/bookingRoutes');
+const serviceRoutes = require('./src/routes/serviceRoutes');
+const faqRoutes = require('./src/routes/faqRoutes');
 
 // Middleware
 app.use(cors({
@@ -20,75 +19,14 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Connect
-mongoose.connect(process.env.DB_URI)
-    .then(() => { console.log("Connection successful.") })
-    .catch((err) => { console.log(err.message) })
+// Routes
+app.use('/bookings', bookingRoutes);
+app.use('/services', serviceRoutes);
+app.use('/faqs', faqRoutes);
+app.use('/', (req, res) => {
+    res.send("TutorHive Server is running...");
+})
 
-
-// {"_id":{"$oid":"654b6cf56d9189375963bdde"},"serviceId":"654a23f08eba517f34331011","serviceName":"Mathematics Tutoring","serviceImage":"https://source.unsplash.com/f1YfrZ1o2r8","serviceProvider":{"image":"https://source.unsplash.com/MTZTGvDsHFY","name":"John Doe","email":"john.doe@mail.com"},"servicePrice":{"$numberInt":"30"},"serviceArea":"New York, NY","serviceDescription":"Master math with our expert tutors. Personalized lessons to boost your math skills.","serviceUser":{"image":"https://source.unsplash.com/mens-gray-crew-neck-shirt-v2aKnjMbP_k/500x500","name":"Milon Kumar","email":"bitolew290@saturdata.com"},"serviceDetails":{"address":"SHRH, RU","startingDate":"November 8, 2023","status":"pending"}}
-
-
-
-// Schema
-const serviceSchema = new mongoose.Schema({
-    serviceImage: String,
-    serviceName: String,
-    serviceDescription: String,
-    serviceProvider: {
-        image: String,
-        name: String,
-        email: String,
-    },
-    servicePrice: Number,
-    serviceArea: String,
-});
-
-const bookingSchema = new mongoose.Schema({
-    serviceId: String,
-    serviceName: String,
-    serviceImage: String,
-    servicePrice: Number,
-    serviceDescription: String,
-    serviceArea: String,
-    serviceProvider: {
-        image: String,
-        name: String,
-        email: String,
-    },
-    serviceUser: {
-        image: String,
-        name: String,
-        email: String,
-    },
-    serviceDetails: {
-        address: String,
-        startingDate: String,
-        status: String,
-    },
-});
-
-
-// Model
-const Service = mongoose.model('Service', serviceSchema);
-const Booking = mongoose.model('Booking', bookingSchema);
-
-
-// Verify Token
-const verifyToken = (req, res, next) => {
-    const token = req?.cookies?.token;
-    if (!token) {
-        return res.status(401).send({ message: "Access Denied" });
-    }
-
-    jwt.verify(token, process.env.SECRET_TOKEN, (err, decoded) => {
-        if (err) {
-            return res.status(401).send({ message: "Access Denied" });
-        }
-        req.user = decoded;
-        next();
-    });
-};
 
 
 app.post("/jwt", async (req, res) => {
@@ -109,79 +47,7 @@ app.post("/logout", async (req, res) => {
 
 
 
-// Services Routes
-app.get("/services", async (req, res) => {
-    try {
-        if (req.query?.email) {
-            const query = { "serviceProvider.email": req.query.email };
-            const result = await Service.find(query).lean().exec();
-            res.send(result);
-        } else if (req.query?.search) {
-            const searchText = req.query.search;
-            const query = {
-                serviceName: { $regex: searchText, $options: "i" }
-            };
-            const options = {
-                sort: {
-                    servicePrice: req.query.sort === "asc" ? 1 : -1
-                }
-            };
-            const result = await Service.find(query, null, options).lean().exec();
-            res.send(result);
-        } else {
-            const result = await Service.find().lean().exec();
-            res.send(result);
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Internal Server Error" });
-    }
-});
 
-app.get("/services/:id", async (req, res) => {
-    try {
-        const id = req.params.id;
-        const result = await Service.findById(id).lean().exec();
-        res.send(result);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Internal Server Error" });
-    }
-});
-
-app.post("/services", verifyToken, async (req, res) => {
-    try {
-        const newService = req.body;
-        const result = await Service.create(newService);
-        res.json(result);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Internal Server Error" });
-    }
-});
-
-app.delete("/services/:id", verifyToken, async (req, res) => {
-    try {
-        const id = req.params.id;
-        const result = await Service.findByIdAndDelete(id).lean().exec();
-        res.send(result);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Internal Server Error" });
-    }
-});
-
-app.put("/services/:id", verifyToken, async (req, res) => {
-    try {
-        const id = req.params.id;
-        const updateService = req.body;
-        const result = await Service.findByIdAndUpdate(id, updateService, { new: true }).lean().exec();
-        res.send(result);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Internal Server Error" });
-    }
-});
 
 // Bookings Routes
 app.get("/bookings", verifyToken, async (req, res) => {

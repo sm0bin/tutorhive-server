@@ -7,6 +7,7 @@ const bookingRoutes = require('./src/routes/bookingRoutes');
 const serviceRoutes = require('./src/routes/serviceRoutes');
 const faqRoutes = require('./src/routes/faqRoutes');
 const authRoutes = require('./src/routes/authRoutes');
+require('dotenv').config();
 
 // Middleware
 app.use(cors({

@@ -31,6 +31,7 @@ exports.getAllServices = async (req, res) => {
 exports.getService = async (req, res) => {
     try {
         const id = req.params.id;
+        console.log('hitting:', id, 'service-cont');
         const result = await Service.findById(id).lean().exec();
         res.send(result);
     } catch (error) {
